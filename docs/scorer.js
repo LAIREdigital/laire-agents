@@ -5,6 +5,19 @@
   function num(v) { var n = parseFloat(v); return isNaN(n) ? null : n; }
   function lc(a) { return (a || []).map(function (x) { return String(x).toLowerCase(); }); }
 
+  // Accepts 150, "5-25", "1000+". A range fits when it overlaps the ICP range.
+  function employeeRange(v) {
+    var t = s(v).replace(/,/g, "");
+    if (!t) return null;
+    if (/\+$/.test(t) && num(t.slice(0, -1)) != null) return [num(t.slice(0, -1)), Infinity];
+    if (t.indexOf("-") > 0) {
+      var p = t.split("-"), x = num(p[0]), y = num(p[1]);
+      return x != null && y != null ? [x, y] : null;
+    }
+    var n = num(t);
+    return n == null ? null : [n, n];
+  }
+
   function disqualifiers(lead, r) {
     var hits = [], ind = s(lead.industry).toLowerCase(), c = s(lead.country).toLowerCase();
     if (ind && lc(r.industries).indexOf(ind) >= 0) hits.push("Excluded industry: " + s(lead.industry));
@@ -27,10 +40,10 @@
       else reasons.push("Industry off ICP: " + ind);
     }
     if ((c = crit.employees)) {
-      var n = num(lead.numberofemployees), mn = c.min == null ? 0 : c.min, mx = c.max == null ? Infinity : c.max;
-      if (n == null) reasons.push("Company size missing");
-      else if (n >= mn && n <= mx) score += c.weight;
-      else reasons.push("Company size " + Math.trunc(n) + " outside " + mn + " to " + (c.max == null ? 0 : c.max));
+      var rng = employeeRange(lead.numberofemployees), lo = c.min == null ? 0 : c.min, hi = c.max == null ? Infinity : c.max;
+      if (rng == null) reasons.push("Company size missing");
+      else if (rng[0] <= hi && rng[1] >= lo) score += c.weight;
+      else reasons.push("Company size " + s(lead.numberofemployees) + " outside " + lo + " to " + (c.max == null ? 0 : c.max));
     }
     if ((c = crit.seniority)) {
       var t = s(lead.jobtitle).toLowerCase(), good = lc(c.good || SENIORITY_DEFAULT);

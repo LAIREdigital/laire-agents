@@ -13,7 +13,7 @@ ol.steps{padding-left:20px}ol.steps li{margin:4px 0}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}@media(max-width:700px){.grid{grid-template-columns:1fr}}
 .card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:16px}
 label{display:block;font-weight:600;margin-top:12px}label small{font-weight:400;color:var(--mut)}
-input,textarea{width:100%;font:inherit;padding:8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--fg)}
+input,textarea,select{width:100%;font:inherit;padding:8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--fg)}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 button{font:inherit;border-radius:6px;padding:10px 16px;cursor:pointer;border:1px solid var(--line);background:var(--bg);color:var(--fg);margin:8px 8px 0 0}
 button.go{background:var(--acc);color:#fff;border-color:var(--acc);font-weight:600;font-size:18px;padding:12px 24px}
@@ -23,7 +23,7 @@ button.go{background:var(--acc);color:#fff;border-color:var(--acc);font-weight:6
 #result.border{border-color:var(--mid)}#result.border #verdict{color:var(--mid)}
 #result.bad{border-color:var(--bad)}#result.bad #verdict{color:var(--bad)}
 #msg{white-space:pre-wrap;background:var(--card);padding:12px;border-radius:6px;margin:8px 0 0}
-details{margin-top:24px}summary{cursor:pointer;font-weight:600}
+details{margin-top:24px}pre{background:var(--card);padding:12px;border-radius:6px;overflow:auto;font-size:14px}summary{cursor:pointer;font-weight:600}
 </style></head><body><main>
 <h1>ICP Qualifier</h1>
 <p class="mut">Check if a new lead fits a client's ideal customer profile. Runs in your browser. Nothing is sent or saved on a server.</p>
@@ -37,6 +37,14 @@ details{margin-top:24px}summary{cursor:pointer;font-weight:600}
 <div class="grid">
 <section class="card" aria-label="Client profile">
 <h2 style="margin-top:0">1. Client profile</h2>
+<label for="saved">Saved profiles <small>(kept in this browser only)</small></label>
+<select id="saved" aria-label="Saved profiles"><option value="">Choose a saved profile</option></select>
+<div>
+<button type="button" id="save">Save this profile</button><button type="button" id="del">Delete</button>
+<button type="button" id="dl">Download file</button>
+<button type="button" id="upBtn">Load from file</button><input type="file" id="up" accept=".json,application/json" hidden>
+</div>
+<p class="mut" id="savedMsg" aria-live="polite" style="margin:4px 0 0"></p>
 <label for="client">Client name</label><input id="client" value="Example Client">
 <label for="goodInd">Industries we want <small>(comma separated)</small></label><input id="goodInd" value="Financial Services, Construction, Software">
 <label for="badInd">Industries to exclude <small>(comma separated)</small></label><input id="badInd" value="Education, Government">
@@ -76,6 +84,14 @@ details{margin-top:24px}summary{cursor:pointer;font-weight:600}
 <p>This page is for testing a profile. To score leads automatically in HubSpot, build the agent from the spec:
 <a href="hubspot/icp-qualifier-agent.md" download>download the HubSpot agent spec</a> and paste it into Agent Hub, Agent Builder.</p>
 
+<details><summary>Run it on LAIRE HubSpot contacts</summary>
+<p>This page cannot read HubSpot because the site is public. To score recent contacts from the LAIRE portal, run it from the repo:</p>
+<pre>export HUBSPOT_TOKEN=your-token
+cd icp-qualifier
+PYTHONPATH=src python3 -m icp_qualifier list-icps
+PYTHONPATH=src python3 -m icp_qualifier run --icp-name acme --days 7 --source PAID_SOCIAL</pre>
+<p>Saved profiles for the command live in an <code>icps</code> folder as the same files you download here. Report only by default. Writing to HubSpot is blocked until the property mapping is approved.</p></details>
+
 <details><summary>How scoring works</summary>
 <p>A lead is a bad fit right away if its industry is excluded, its email is a free mail address, or its title has a bad word.
 Otherwise it earns points: industry 35, company size 25, job title 25, country 15. 70 or more is a good fit, 40 to 69 is maybe, under 40 is bad.
@@ -96,6 +112,18 @@ function setLead(l){["email","jobtitle","company","industry","country","employee
 document.querySelectorAll("[data-s]").forEach(function(b){b.onclick=function(){setLead(EX[b.dataset.s])}});
 setLead(EX.border);
 
+function fillIcp(c){
+  var cr=c.criteria||{},d=c.disqualifiers||{};
+  $("client").value=c.client||"";
+  $("goodInd").value=((cr.industry||{}).good||[]).join(", ");
+  $("badInd").value=(d.industries||[]).join(", ");
+  $("minEmp").value=(cr.employees||{}).min==null?"":cr.employees.min;
+  $("maxEmp").value=(cr.employees||{}).max==null?"":cr.employees.max;
+  $("titles").value=((cr.seniority||{}).good||[]).join(", ");
+  $("badTitles").value=(d.title_keywords||[]).join(", ");
+  $("countries").value=((cr.country||{}).good||[]).join(", ");
+  $("freeMail").value=(d.free_email_domains||[]).join(", ");
+}
 function icp(){
   return {client:$("client").value.trim(),thresholds:{good:70,borderline:40},
     disqualifiers:{industries:list("badInd"),countries:[],free_email_domains:list("freeMail"),title_keywords:list("badTitles")},
@@ -103,6 +131,41 @@ function icp(){
       employees:{weight:25,min:Number($("minEmp").value)||0,max:$("maxEmp").value===""?null:Number($("maxEmp").value)},
       seniority:{weight:25,good:list("titles")},country:{weight:15,good:list("countries")}}};
 }
+// Saved profiles. Browser storage can be blocked, so every access is guarded.
+var KEY="laire-icp-profiles";
+function store(){try{return JSON.parse(localStorage.getItem(KEY)||"{}")}catch(e){return {}}}
+function putStore(o){try{localStorage.setItem(KEY,JSON.stringify(o));return true}catch(e){return false}}
+function say(t){$("savedMsg").textContent=t}
+function refreshSaved(sel){
+  var o=store(),box=$("saved");box.innerHTML="";
+  var first=document.createElement("option");first.value="";first.textContent="Choose a saved profile";box.appendChild(first);
+  Object.keys(o).sort().forEach(function(n){var x=document.createElement("option");x.value=n;x.textContent=n;box.appendChild(x)});
+  if(sel)box.value=sel;
+}
+$("saved").onchange=function(){var n=$("saved").value,o=store();if(n&&o[n]){fillIcp(o[n]);say("Loaded "+n)}};
+$("save").onclick=function(){
+  var name=$("client").value.trim();if(!name){say("Type a client name first.");return}
+  var o=store();o[name]=icp();
+  if(putStore(o)){refreshSaved(name);say("Saved "+name+" in this browser. Use Download file to share it.")}else{say("This browser blocked saving. Use Download file instead.")}
+};
+$("del").onclick=function(){
+  var n=$("saved").value;if(!n){say("Pick a saved profile first.");return}
+  var o=store();delete o[n];putStore(o);refreshSaved();say("Deleted "+n)
+};
+$("dl").onclick=function(){
+  var c=icp(),a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(c,null,2)],{type:"application/json"}));
+  a.download=(c.client||"icp").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")+".json";
+  document.body.appendChild(a);a.click();a.remove();say("Downloaded "+a.download);
+};
+$("upBtn").onclick=function(){$("up").click()};
+$("up").onchange=function(){
+  var f=$("up").files[0];if(!f)return;var r=new FileReader();
+  r.onload=function(){try{var c=JSON.parse(r.result);fillIcp(c);say("Loaded "+(c.client||f.name)+". Press Save to keep it.")}catch(e){say("That file is not a valid profile.")}};
+  r.readAsText(f);$("up").value="";
+};
+refreshSaved();
+
 var LABEL={good_fit:"Good fit",borderline:"Maybe, needs a human look",bad_fit:"Bad fit"};
 var CLS={good_fit:"good",borderline:"border",bad_fit:"bad"};
 $("go").onclick=function(){

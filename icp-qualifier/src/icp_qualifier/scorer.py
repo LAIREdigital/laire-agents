@@ -14,6 +14,26 @@ def _num(value):
         return None
 
 
+def employee_range(value):
+    """Parse 150, '150', '5-25', '1000+' into (low, high). None if unknown.
+
+    HubSpot contacts store size as a range string, so a range counts as a fit
+    when it overlaps the ICP range.
+    """
+    t = _s(value).replace(",", "")
+    if not t:
+        return None
+    if t.endswith("+") and _num(t[:-1]) is not None:
+        return (_num(t[:-1]), float("inf"))
+    if "-" in t:
+        a, _, b = t.partition("-")
+        if _num(a) is not None and _num(b) is not None:
+            return (_num(a), _num(b))
+        return None
+    n = _num(t)
+    return None if n is None else (n, n)
+
+
 def _disqualifiers(lead, rules):
     hits = []
     industry = _s(lead.get("industry")).lower()
@@ -49,13 +69,15 @@ def _criteria(lead, crit):
 
     c = crit.get("employees")
     if c:
-        n = _num(lead.get("numberofemployees"))
-        if n is None:
+        rng = employee_range(lead.get("numberofemployees"))
+        lo, hi = c.get("min", 0), c.get("max")
+        hi = float("inf") if hi is None else hi
+        if rng is None:
             reasons.append("Company size missing")
-        elif c.get("min", 0) <= n <= c.get("max", float("inf")):
+        elif rng[0] <= hi and rng[1] >= lo:
             score += c["weight"]
         else:
-            reasons.append("Company size %d outside %d to %d" % (n, c.get("min", 0), c.get("max", 0)))
+            reasons.append("Company size %s outside %d to %d" % (_s(lead.get("numberofemployees")), lo, c.get("max") or 0))
 
     c = crit.get("seniority")
     if c:

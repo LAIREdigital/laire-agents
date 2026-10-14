@@ -1,0 +1,17 @@
+{
+  "approved": false,
+  "note": "PROPOSED, not approved. Set approved to true only after Sam signs off. Portal 533215.",
+  "skip_if_already_set": ["not_a_fit_", "quality_of_lead"],
+  "verdicts": {
+    "good_fit": {"not_a_fit_": "Yes", "quality_of_lead": "High"},
+    "borderline": {"quality_of_lead": "Medium"},
+    "bad_fit": {"not_a_fit_": "No", "quality_of_lead": "Low"}
+  },
+  "why_disqualified_": {
+    "prefix_to_value": {
+      "Excluded industry": "Industry",
+      "Industry off ICP": "Industry",
+      "Company size": "Company Size"
+    }
+  }
+}
