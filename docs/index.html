@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LAIRE Agents</title>
+<style>
+:root{--bg:#fff;--fg:#1a1a1a;--mut:#666;--line:#ddd;--acc:#0b5cab;--card:#f6f7f9}
+@media(prefers-color-scheme:dark){:root{--bg:#14161a;--fg:#eee;--mut:#9aa;--line:#333;--acc:#6db3ff;--card:#1d2026}}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,sans-serif}
+main{max-width:880px;margin:0 auto;padding:24px 16px}
+h1{margin:0 0 4px}h2{margin-top:32px}p.mut{color:var(--mut)}
+nav a{margin-right:16px;color:var(--acc)}
+textarea{width:100%;box-sizing:border-box;min-height:220px;font:13px/1.4 ui-monospace,monospace;background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:8px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:16px}@media(max-width:700px){.row{grid-template-columns:1fr}}
+button{background:var(--acc);color:#fff;border:0;border-radius:6px;padding:8px 14px;font:inherit;cursor:pointer;margin:8px 8px 0 0}
+button.alt{background:var(--card);color:var(--fg);border:1px solid var(--line)}
+.out{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:12px;margin-top:16px;white-space:pre-wrap}
+.v{font-weight:700}pre{background:var(--card);padding:12px;border-radius:6px;overflow:auto}
+</style></head><body><main>
+<h1>LAIRE agents</h1>
+<p class="mut">Agent 1: ICP Qualifier. Runs in your browser. Nothing is sent anywhere. Do not paste secrets.</p>
+<nav><a href="#run">Run it</a><a href="https://github.com/LAIREdigital/laire-agents/blob/main/docs/agent-architecture.md">Architecture</a><a href="hubspot/icp-qualifier-agent.md">HubSpot agent spec</a><a href="https://github.com/LAIREdigital/laire-agents">Repo</a></nav>
+<h2 id="run">ICP Qualifier</h2>
+<div class="row">
+<div><label for="icp"><b>Client ICP (JSON)</b></label><textarea id="icp" spellcheck="false">{
+  "client": "EXAMPLE CLIENT",
+  "thresholds": {"good": 70, "borderline": 40},
+  "disqualifiers": {
+    "industries": ["Education", "Government"],
+    "countries": [],
+    "free_email_domains": ["gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "aol.com"],
+    "title_keywords": ["student", "intern", "retired", "unemployed"]
+  },
+  "criteria": {
+    "industry": {"weight": 35, "good": ["Financial Services", "Construction", "Software"]},
+    "employees": {"weight": 25, "min": 20, "max": 1000},
+    "seniority": {"weight": 25, "good": ["owner", "founder", "ceo", "vp", "director", "head", "chief", "manager"]},
+    "country": {"weight": 15, "good": ["United States", "Canada"]}
+  },
+  "hubspot_mapping": {
+    "verdict_property": "TBD, check option values of not_a_fit_ first",
+    "reason_property": "TBD, new text property or note"
+  },
+  "slack": {"channel": "TBD per client"}
+}</textarea></div>
+<div><label for="lead"><b>Lead (JSON)</b></label><textarea id="lead" spellcheck="false">{"email": "lee@buildco.com", "jobtitle": "Estimator", "company": "BuildCo", "industry": "Construction", "country": "United States", "numberofemployees": "8"}</textarea>
+<button class="alt" data-s="good">Good example</button><button class="alt" data-s="border">Borderline</button><button class="alt" data-s="bad">Bad example</button></div>
+</div>
+<button id="go">Score lead</button>
+<div class="out" id="out" aria-live="polite">Result shows here.</div>
+<script src="scorer.js"></script>
+<script>
+var S={good:"{\"email\": \"jane@acmefin.com\", \"jobtitle\": \"VP Marketing\", \"company\": \"Acme Financial\", \"industry\": \"Financial Services\", \"country\": \"United States\", \"numberofemployees\": \"150\"}",border:"{\"email\": \"lee@buildco.com\", \"jobtitle\": \"Estimator\", \"company\": \"BuildCo\", \"industry\": \"Construction\", \"country\": \"United States\", \"numberofemployees\": \"8\"}",bad:"{\"email\": \"sam123@gmail.com\", \"jobtitle\": \"Student\", \"company\": \"\", \"industry\": \"Education\", \"country\": \"United States\", \"numberofemployees\": \"5\"}"};
+document.querySelectorAll("[data-s]").forEach(function(b){b.onclick=function(){document.getElementById("lead").value=S[b.dataset.s]}});
+document.getElementById("go").onclick=function(){
+  var o=document.getElementById("out");
+  try{
+    var icp=JSON.parse(document.getElementById("icp").value),lead=JSON.parse(document.getElementById("lead").value);
+    var r=ICP.scoreLead(lead,icp);
+    o.textContent="";
+    var v=document.createElement("div");v.className="v";v.textContent=r.verdict+" | score "+r.score+" | "+r.source;
+    var p=document.createElement("pre");p.textContent=ICP.slackText(lead,r,icp.client);
+    o.appendChild(v);o.appendChild(p);
+  }catch(e){o.textContent="Bad JSON: "+e.message}
+};
+</script>
+</main></body></html>
