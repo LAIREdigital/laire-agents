@@ -1,65 +1,125 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>LAIRE Agents</title>
+<title>LAIRE ICP Qualifier</title>
 <style>
-:root{--bg:#fff;--fg:#1a1a1a;--mut:#666;--line:#ddd;--acc:#0b5cab;--card:#f6f7f9}
-@media(prefers-color-scheme:dark){:root{--bg:#14161a;--fg:#eee;--mut:#9aa;--line:#333;--acc:#6db3ff;--card:#1d2026}}
+:root{--bg:#fff;--fg:#1a1a1a;--mut:#5f6770;--line:#d9dde2;--acc:#0b5cab;--card:#f5f6f8;--good:#0a7a3d;--mid:#9a6700;--bad:#b42318}
+@media(prefers-color-scheme:dark){:root{--bg:#14161a;--fg:#eee;--mut:#9aa4ae;--line:#33383f;--acc:#6db3ff;--card:#1d2026;--good:#4cc27f;--mid:#e0a93b;--bad:#ff7b72}}
+*{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,sans-serif}
-main{max-width:880px;margin:0 auto;padding:24px 16px}
-h1{margin:0 0 4px}h2{margin-top:32px}p.mut{color:var(--mut)}
-nav a{margin-right:16px;color:var(--acc)}
-textarea{width:100%;box-sizing:border-box;min-height:220px;font:13px/1.4 ui-monospace,monospace;background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:8px}
-.row{display:grid;grid-template-columns:1fr 1fr;gap:16px}@media(max-width:700px){.row{grid-template-columns:1fr}}
-button{background:var(--acc);color:#fff;border:0;border-radius:6px;padding:8px 14px;font:inherit;cursor:pointer;margin:8px 8px 0 0}
-button.alt{background:var(--card);color:var(--fg);border:1px solid var(--line)}
-.out{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:12px;margin-top:16px;white-space:pre-wrap}
-.v{font-weight:700}pre{background:var(--card);padding:12px;border-radius:6px;overflow:auto}
+main{max-width:860px;margin:0 auto;padding:24px 16px 64px}
+h1{margin:0 0 4px;font-size:28px}h2{margin:32px 0 8px;font-size:20px}
+.mut{color:var(--mut)}a{color:var(--acc)}
+ol.steps{padding-left:20px}ol.steps li{margin:4px 0}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}@media(max-width:700px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:16px}
+label{display:block;font-weight:600;margin-top:12px}label small{font-weight:400;color:var(--mut)}
+input,textarea{width:100%;font:inherit;padding:8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--fg)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+button{font:inherit;border-radius:6px;padding:10px 16px;cursor:pointer;border:1px solid var(--line);background:var(--bg);color:var(--fg);margin:8px 8px 0 0}
+button.go{background:var(--acc);color:#fff;border-color:var(--acc);font-weight:600;font-size:18px;padding:12px 24px}
+#result{margin-top:24px;border:2px solid var(--line);border-radius:8px;padding:16px;display:none}
+#verdict{font-size:26px;font-weight:700;margin:0}
+#result.good{border-color:var(--good)}#result.good #verdict{color:var(--good)}
+#result.border{border-color:var(--mid)}#result.border #verdict{color:var(--mid)}
+#result.bad{border-color:var(--bad)}#result.bad #verdict{color:var(--bad)}
+#msg{white-space:pre-wrap;background:var(--card);padding:12px;border-radius:6px;margin:8px 0 0}
+details{margin-top:24px}summary{cursor:pointer;font-weight:600}
 </style></head><body><main>
-<h1>LAIRE agents</h1>
-<p class="mut">Agent 1: ICP Qualifier. Runs in your browser. Nothing is sent anywhere. Do not paste secrets.</p>
-<nav><a href="#run">Run it</a><a href="https://github.com/LAIREdigital/laire-agents/blob/main/docs/agent-architecture.md">Architecture</a><a href="hubspot/icp-qualifier-agent.md" download>Download HubSpot agent spec</a><a href="https://github.com/LAIREdigital/laire-agents">Repo</a></nav>
-<h2 id="run">ICP Qualifier</h2>
-<div class="row">
-<div><label for="icp"><b>Client ICP (JSON)</b></label><textarea id="icp" spellcheck="false">{
-  "client": "EXAMPLE CLIENT",
-  "thresholds": {"good": 70, "borderline": 40},
-  "disqualifiers": {
-    "industries": ["Education", "Government"],
-    "countries": [],
-    "free_email_domains": ["gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "aol.com"],
-    "title_keywords": ["student", "intern", "retired", "unemployed"]
-  },
-  "criteria": {
-    "industry": {"weight": 35, "good": ["Financial Services", "Construction", "Software"]},
-    "employees": {"weight": 25, "min": 20, "max": 1000},
-    "seniority": {"weight": 25, "good": ["owner", "founder", "ceo", "vp", "director", "head", "chief", "manager"]},
-    "country": {"weight": 15, "good": ["United States", "Canada"]}
-  },
-  "hubspot_mapping": {
-    "verdict_property": "TBD, check option values of not_a_fit_ first",
-    "reason_property": "TBD, new text property or note"
-  },
-  "slack": {"channel": "TBD per client"}
-}</textarea></div>
-<div><label for="lead"><b>Lead (JSON)</b></label><textarea id="lead" spellcheck="false">{"email": "lee@buildco.com", "jobtitle": "Estimator", "company": "BuildCo", "industry": "Construction", "country": "United States", "numberofemployees": "8"}</textarea>
-<button class="alt" data-s="good">Good example</button><button class="alt" data-s="border">Borderline</button><button class="alt" data-s="bad">Bad example</button></div>
+<h1>ICP Qualifier</h1>
+<p class="mut">Check if a new lead fits a client's ideal customer profile. Runs in your browser. Nothing is sent or saved on a server.</p>
+
+<ol class="steps">
+<li>Fill in the client profile on the left (or keep the example).</li>
+<li>Fill in the lead on the right, or tap an example.</li>
+<li>Press Check lead. Copy the message to Slack.</li>
+</ol>
+
+<div class="grid">
+<section class="card" aria-label="Client profile">
+<h2 style="margin-top:0">1. Client profile</h2>
+<label for="client">Client name</label><input id="client" value="Example Client">
+<label for="goodInd">Industries we want <small>(comma separated)</small></label><input id="goodInd" value="Financial Services, Construction, Software">
+<label for="badInd">Industries to exclude <small>(comma separated)</small></label><input id="badInd" value="Education, Government">
+<div class="two">
+<div><label for="minEmp">Min employees</label><input id="minEmp" type="number" value="20"></div>
+<div><label for="maxEmp">Max employees</label><input id="maxEmp" type="number" value="1000"></div>
 </div>
-<button id="go">Score lead</button>
-<div class="out" id="out" aria-live="polite">Result shows here.</div>
+<label for="titles">Decision maker words in job title <small>(comma separated)</small></label><input id="titles" value="owner, founder, ceo, vp, director, head, chief, manager">
+<label for="badTitles">Bad title words <small>(comma separated)</small></label><input id="badTitles" value="student, intern, retired, unemployed">
+<label for="countries">Countries we want <small>(comma separated)</small></label><input id="countries" value="United States, Canada">
+<label for="freeMail">Treat as bad if email is from <small>(comma separated)</small></label><input id="freeMail" value="gmail.com, yahoo.com, hotmail.com, outlook.com, aol.com">
+</section>
+
+<section class="card" aria-label="Lead">
+<h2 style="margin-top:0">2. Lead</h2>
+<div><button type="button" data-s="good">Example: good</button><button type="button" data-s="border">Example: maybe</button><button type="button" data-s="bad">Example: bad</button></div>
+<label for="email">Email</label><input id="email" type="email">
+<label for="jobtitle">Job title</label><input id="jobtitle">
+<label for="company">Company</label><input id="company">
+<label for="industry">Industry</label><input id="industry">
+<div class="two">
+<div><label for="country">Country</label><input id="country"></div>
+<div><label for="employees">Employees</label><input id="employees" type="number"></div>
+</div>
+</section>
+</div>
+
+<button class="go" id="go" type="button">3. Check lead</button>
+
+<div id="result" aria-live="polite">
+<p id="verdict"></p><p class="mut" id="score"></p>
+<div id="msg"></div>
+<button type="button" id="copy">Copy message for Slack</button><span id="copied" class="mut"></span>
+</div>
+
+<h2>Use it in HubSpot</h2>
+<p>This page is for testing a profile. To score leads automatically in HubSpot, build the agent from the spec:
+<a href="hubspot/icp-qualifier-agent.md" download>download the HubSpot agent spec</a> and paste it into Agent Hub, Agent Builder.</p>
+
+<details><summary>How scoring works</summary>
+<p>A lead is a bad fit right away if its industry is excluded, its email is a free mail address, or its title has a bad word.
+Otherwise it earns points: industry 35, company size 25, job title 25, country 15. 70 or more is a good fit, 40 to 69 is maybe, under 40 is bad.
+The message always names what is missing or off.</p>
+<p>Do not paste passwords, tokens, or real client lists into this page. This site is public.</p>
+<p><a href="https://github.com/LAIREdigital/laire-agents/blob/main/docs/agent-architecture.md">Agent architecture</a> | <a href="https://github.com/LAIREdigital/laire-agents">Code</a></p></details>
+
 <script src="scorer.js"></script>
 <script>
-var S={good:"{\"email\": \"jane@acmefin.com\", \"jobtitle\": \"VP Marketing\", \"company\": \"Acme Financial\", \"industry\": \"Financial Services\", \"country\": \"United States\", \"numberofemployees\": \"150\"}",border:"{\"email\": \"lee@buildco.com\", \"jobtitle\": \"Estimator\", \"company\": \"BuildCo\", \"industry\": \"Construction\", \"country\": \"United States\", \"numberofemployees\": \"8\"}",bad:"{\"email\": \"sam123@gmail.com\", \"jobtitle\": \"Student\", \"company\": \"\", \"industry\": \"Education\", \"country\": \"United States\", \"numberofemployees\": \"5\"}"};
-document.querySelectorAll("[data-s]").forEach(function(b){b.onclick=function(){document.getElementById("lead").value=S[b.dataset.s]}});
-document.getElementById("go").onclick=function(){
-  var o=document.getElementById("out");
-  try{
-    var icp=JSON.parse(document.getElementById("icp").value),lead=JSON.parse(document.getElementById("lead").value);
-    var r=ICP.scoreLead(lead,icp);
-    o.textContent="";
-    var v=document.createElement("div");v.className="v";v.textContent=r.verdict+" | score "+r.score+" | "+r.source;
-    var p=document.createElement("pre");p.textContent=ICP.slackText(lead,r,icp.client);
-    o.appendChild(v);o.appendChild(p);
-  }catch(e){o.textContent="Bad JSON: "+e.message}
+var EX = {
+  good:{email:"jane@acmefin.com",jobtitle:"VP Marketing",company:"Acme Financial",industry:"Financial Services",country:"United States",employees:"150"},
+  border:{email:"lee@buildco.com",jobtitle:"Estimator",company:"BuildCo",industry:"Construction",country:"United States",employees:"8"},
+  bad:{email:"sam123@gmail.com",jobtitle:"Student",company:"",industry:"Education",country:"United States",employees:"5"}
+};
+function $(id){return document.getElementById(id)}
+function list(id){return $(id).value.split(",").map(function(x){return x.trim()}).filter(Boolean)}
+function setLead(l){["email","jobtitle","company","industry","country","employees"].forEach(function(k){$(k).value=l[k]||""})}
+document.querySelectorAll("[data-s]").forEach(function(b){b.onclick=function(){setLead(EX[b.dataset.s])}});
+setLead(EX.border);
+
+function icp(){
+  return {client:$("client").value.trim(),thresholds:{good:70,borderline:40},
+    disqualifiers:{industries:list("badInd"),countries:[],free_email_domains:list("freeMail"),title_keywords:list("badTitles")},
+    criteria:{industry:{weight:35,good:list("goodInd")},
+      employees:{weight:25,min:Number($("minEmp").value)||0,max:$("maxEmp").value===""?null:Number($("maxEmp").value)},
+      seniority:{weight:25,good:list("titles")},country:{weight:15,good:list("countries")}}};
+}
+var LABEL={good_fit:"Good fit",borderline:"Maybe, needs a human look",bad_fit:"Bad fit"};
+var CLS={good_fit:"good",borderline:"border",bad_fit:"bad"};
+$("go").onclick=function(){
+  var cfg=icp(),lead={email:$("email").value,jobtitle:$("jobtitle").value,company:$("company").value,
+    industry:$("industry").value,country:$("country").value,numberofemployees:$("employees").value};
+  var r=ICP.scoreLead(lead,cfg),box=$("result");
+  box.style.display="block";box.className=CLS[r.verdict];
+  $("verdict").textContent=LABEL[r.verdict];
+  $("score").textContent="Score "+r.score+" out of 100";
+  $("msg").textContent=ICP.slackText(lead,r,cfg.client);
+  $("copied").textContent="";
+  box.scrollIntoView({behavior:"smooth",block:"nearest"});
+};
+$("copy").onclick=function(){
+  var t=$("msg").textContent;
+  function done(ok){$("copied").textContent=ok?"Copied":"Press Ctrl+C to copy the text above"}
+  if(navigator.clipboard){navigator.clipboard.writeText(t).then(function(){done(true)},function(){done(false)})}else{done(false)}
 };
 </script>
 </main></body></html>
