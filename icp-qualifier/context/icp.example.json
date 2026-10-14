@@ -1,0 +1,21 @@
+{
+  "client": "EXAMPLE CLIENT",
+  "thresholds": {"good": 70, "borderline": 40},
+  "disqualifiers": {
+    "industries": ["Education", "Government"],
+    "countries": [],
+    "free_email_domains": ["gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "aol.com"],
+    "title_keywords": ["student", "intern", "retired", "unemployed"]
+  },
+  "criteria": {
+    "industry": {"weight": 35, "good": ["Financial Services", "Construction", "Software"]},
+    "employees": {"weight": 25, "min": 20, "max": 1000},
+    "seniority": {"weight": 25, "good": ["owner", "founder", "ceo", "vp", "director", "head", "chief", "manager"]},
+    "country": {"weight": 15, "good": ["United States", "Canada"]}
+  },
+  "hubspot_mapping": {
+    "verdict_property": "TBD, check option values of not_a_fit_ first",
+    "reason_property": "TBD, new text property or note"
+  },
+  "slack": {"channel": "TBD per client"}
+}
