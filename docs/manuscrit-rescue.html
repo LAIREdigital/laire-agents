@@ -38,6 +38,38 @@ It only reads. Nothing is changed or deleted.</p>
   var box = document.getElementById("found");
   var raw = null, data = null;
   try { raw = localStorage.getItem("manuscrit.v1"); data = raw && JSON.parse(raw); } catch (e) { data = null; }
+
+  // Handoff: Manuscrit at toolkit.laire.ai sends each browser here once. Read the old data and
+  // send it straight back in the URL hash (never sent to a server). Read only: nothing here is
+  // changed or deleted. Only returns to the toolkit address (or localhost when testing locally).
+  var q = new URLSearchParams(location.search);
+  var ret = q.get("return") || "";
+  var local = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+  var allowed = ret.indexOf("https://toolkit.laire.ai/") === 0 || (local && /^http:\/\/(localhost|127\.0\.0\.1):\d+\//.test(ret));
+  if (q.get("handoff") === "1" && allowed) {
+    box.innerHTML = "<strong>Moving your notes to the new address...</strong>";
+    var parseKey = function (k) { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch (e) { return null; } };
+    var ok = data && Array.isArray(data.books) && Array.isArray(data.fragments);
+    if (!ok) { location.replace(ret + "#migrate=none"); return; }
+    var json = JSON.stringify({ v: 1, data: data, users: parseKey("manuscrit.users.v1"), keys: parseKey("manuscrit.keys.v1") });
+    var toB64 = function (bytes) {
+      var s = "", chunk = 0x8000;
+      for (var i = 0; i < bytes.length; i += chunk) s += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+      return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    };
+    var send = function (b64) {
+      if (b64.length > 1800000) location.replace(ret + "#migrate=toobig");
+      else location.replace(ret + "#migrate=" + b64);
+    };
+    if (typeof CompressionStream !== "undefined") {
+      new Response(new Blob([json]).stream().pipeThrough(new CompressionStream("gzip"))).arrayBuffer()
+        .then(function (buf) { send(toB64(new Uint8Array(buf))); })
+        .catch(function () { send(toB64(new TextEncoder().encode(json))); });
+    } else {
+      send(toB64(new TextEncoder().encode(json)));
+    }
+    return;
+  }
   if (!data || !Array.isArray(data.books) || !Array.isArray(data.fragments)) {
     box.innerHTML = "<strong>Nothing found in this browser.</strong><p class='mut'>Either Manuscrit was never used here at the old address, or this browser storage was cleared. Try the other browsers and devices you wrote on.</p>";
     return;
