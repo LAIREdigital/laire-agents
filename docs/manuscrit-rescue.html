@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Manuscrit Rescue</title>
+<meta name="robots" content="noindex">
+<style>
+:root{--bg:#f4f2f9;--fg:#3d3642;--mut:#616972;--line:#e2dfe8;--acc:#ff8b71;--card:#fff}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,sans-serif}
+main{max-width:640px;margin:0 auto;padding:32px 16px 64px}
+h1{margin:0 0 8px;font-size:26px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:20px;margin-top:20px}
+.mut{color:var(--mut)}
+button{font:inherit;font-weight:700;border:0;border-radius:8px;padding:12px 20px;background:var(--acc);color:#fff;cursor:pointer}
+button:disabled{opacity:.5;cursor:not-allowed}
+ol li{margin:6px 0}
+</style></head><body><main>
+<h1>Manuscrit rescue</h1>
+<p class="mut">Manuscrit.AI moved to <a href="https://toolkit.laire.ai/manuscrit/">toolkit.laire.ai/manuscrit</a>.
+Books and notes written at the old address stay in this browser under the old address. This page downloads them so you can bring them over.
+It only reads. Nothing is changed or deleted.</p>
+
+<div class="card" id="found"></div>
+
+<div class="card">
+<strong>Bring them over</strong>
+<ol>
+<li>Download the backup above.</li>
+<li>Open <a href="https://toolkit.laire.ai/manuscrit/">toolkit.laire.ai/manuscrit</a> and sign in.</li>
+<li>If you already wrote anything there, download a backup from Settings first. Restoring replaces what is there.</li>
+<li>Settings, Backup, Restore, pick the file you downloaded here.</li>
+<li>AI keys are never in backups. Add them again in Settings.</li>
+</ol>
+<p class="mut">Do this on every browser and device you used Manuscrit on. Each one kept its own copy.</p>
+</div>
+</main>
+<script>
+(function () {
+  var box = document.getElementById("found");
+  var raw = null, data = null;
+  try { raw = localStorage.getItem("manuscrit.v1"); data = raw && JSON.parse(raw); } catch (e) { data = null; }
+  if (!data || !Array.isArray(data.books) || !Array.isArray(data.fragments)) {
+    box.innerHTML = "<strong>Nothing found in this browser.</strong><p class='mut'>Either Manuscrit was never used here at the old address, or this browser storage was cleared. Try the other browsers and devices you wrote on.</p>";
+    return;
+  }
+  var notes = data.fragments.length, books = data.books.length;
+  box.innerHTML = "<strong>Found " + notes + " note" + (notes === 1 ? "" : "s") + " in " + books + " book" + (books === 1 ? "" : "s") + ".</strong>" +
+    "<p class='mut'>" + data.books.map(function (b) { return String(b.title).replace(/[<>&]/g, ""); }).join(", ") + "</p>" +
+    "<button id='dl'>Download backup</button>";
+  document.getElementById("dl").onclick = function () {
+    var stamp = new Date().toISOString().slice(0, 10);
+    var blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "manuscrit-rescue-" + stamp + ".json";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+  };
+})();
+</script>
+</body></html>
